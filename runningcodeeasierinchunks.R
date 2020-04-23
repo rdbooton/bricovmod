@@ -1,9 +1,10 @@
+#### test is this working
 N=100000
 p1<-Sampling(N) 
 write.csv(p1,"p1.csv")
 p1<-fread("p1.csv")
 K=1000 #how many slices
- #### test
+
 ###### 
 # OUT_1 to OUT_K
 for (i in 1:K){
