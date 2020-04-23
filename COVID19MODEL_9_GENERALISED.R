@@ -111,7 +111,8 @@ IN <- function(Q) {
     COMP2 <<- matrix(1, nrow=N_AGE,ncol=N_AGE)
     COMP3 <<- matrix(1, nrow=N_AGE,ncol=N_AGE)
     dy = array(0, dim = c(N_COMP, N_AGE)) #8 states and 16 age groups of 5 years
-    CONTACTMATRIX <<- AGEGRP}}
+    CONTACTMATRIX <<- AGEGRP
+    }}
 B<-IN(TRUE)
 
 ################         FUNC: DESOLVE FUNCTION           ######################
@@ -120,13 +121,14 @@ XY.model <- function(time, y, params) {#XY.model is the function for solving our
   y = array(y,  dim = c(N_COMP, N_AGE))
   kappa <- params["kappa"][[1]]
   rgnonIC <-params["rgnonIC"][[1]]
-  rgIC <-params["rgIC"][[1]]
+ # rgIC <-params["rgIC"][[1]]
   delta <- params["delta"][[1]]
   rho <- params["rho"][[1]]
   eta <- c(params["eta"][[1]])
   alpha <- c(params["alpha"][[1]])
   mu <- c(params["mu"][[1]])
   gamma <- c(params["gamma1"][[1]],params["gamma2"][[1]],params["gamma3"][[1]],params["gamma4"][[1]],params["gamma5"][[1]],params["gamma6"][[1]],params["gamma7"][[1]],params["gamma8"][[1]],params["gamma9"][[1]])
+  omega <- c(params["omega1"][[1]],params["omega2"][[1]],params["omega3"][[1]],params["omega4"][[1]],params["omega5"][[1]],params["omega6"][[1]],params["omega7"][[1]],params["omega8"][[1]],params["omega9"][[1]])
   psi <- c(params["psi"][[1]])
   betaA <- rep(c(params["betaA"][[1]]),N_AGE) 
   betaI <- rep(c(params["betaI"][[1]]),N_AGE) 
@@ -158,7 +160,7 @@ XY.model <- function(time, y, params) {#XY.model is the function for solving our
     }}
   lambda <- apply(FOIMAT,c(2),sum ) #add up to give vector of lambda_g
   epsilon <- 1- rgnonIC  #(pi * (1- rgnonIC)) + (1-pi)
-  omega <- 1 - rgIC #(squiggle * (1- rgIC)) + (1-squiggle)
+ # omega <- 1 - rgIC #(squiggle * (1- rgIC)) + (1-squiggle)
   ###############################    MODEL EQUATIONS     #####################################
   for (g in 1:N_AGE){
     #### Susceptible = S ####
@@ -180,9 +182,9 @@ XY.model <- function(time, y, params) {#XY.model is the function for solving our
     #### Recovering in IC bed = B ####
     dy[9,g] <- 0  #psi * (1 - omega) * y[7,g] - chi * y[9,g]
     #### Recovered ####
-    dy[10,g] <- alpha * y[4,g]  + mu * (1 - gamma[g]) * y[5, g] + psi * (1 - omega) * y[7,g] + (1 - kappa) * (1 - epsilon) * rho  * y[6,g]
+    dy[10,g] <- alpha * y[4,g]  + mu * (1 - gamma[g]) * y[5, g] + psi * (1 - omega[g]) * y[7,g] + (1 - kappa) * (1 - epsilon) * rho  * y[6,g]
     #### Dead ####
-    dy[11,g] <-  psi * omega * y[7, g] + (1- epsilon)*kappa*rho*y[6,g]
+    dy[11,g] <-  psi * omega[g] * y[7, g] + (1- epsilon)*kappa*rho*y[6,g]
     }
   list(as.vector(dy))
 }
@@ -192,23 +194,26 @@ XY.model <- function(time, y, params) {#XY.model is the function for solving our
 epid.start <- 0
 epid <- function(eta,alpha,delta,mu,
                  gamma1,gamma2,gamma3,gamma4,gamma5,gamma6,gamma7,
-                 psi,chi,betaA,betaI, rho,phi,w,yprop,rgnonIC,b, rgIC, kappa,
+                 psi,chi,betaA,betaI, rho,phi,w,yprop,rgnonIC,b, omega1, omega2, omega3, omega4, omega5, omega6, omega7, omega8, omega9, kappa,
                  homeschool,lockdown,distancing,employment,initialinfected,gamma8,gamma9, UR1, #UR2, UR3, UR4, 
-                 epid.duration = LA + 2, #length of simulation
+                 epid.duration = nrow(COVIDBYDAY) - 1, #length of simulation
                  func.indicator) #plot or no plot?
 {  ##set up initial population in each state for each group
-  foo<- array(1:(N_COMP*N_AGE),dim=c(N_COMP,N_AGE)) #temp array used for indexing
+  foo <- array(1:(N_COMP*N_AGE),dim=c(N_COMP,N_AGE)) #temp array used for indexing
   y_vec <- rep(0,(N_COMP*N_AGE))
   AGESHIELD <- c(0,0,0,0,0,0,0,0,0) #NEED TO CHECK THIS 
   y_vec[as.vector(foo[1,])] <- AGEPOP*(1-AGESHIELD) #uninfected age group 1 to N_AGE for SW ENGLAND DEMOGRAPHICS 2018
-  y_vec[as.vector(foo[2,])] <- AGEPOP* AGESHIELD
-  y_vec[as.vector(foo[5,])] <- initialinfected #seed initialinfected infected in each age group , infectious
+ # y_vec[as.vector(foo[2,])] <- AGEPOP* AGESHIELD
+  y_vec[as.vector(foo[5,5])] <- initialinfected #seed initialinfected infected in 5TH 25-39 age group , infectious
   names(y_vec) <- paste0("y", 1:(N_COMP*N_AGE))
   init<-y_vec
   #params is the data from outside this function, which is used through the Sampling function
   params <- list(eta=eta,alpha=alpha,mu=mu,delta=delta,
                  gamma1=gamma1, gamma2=gamma2, gamma3=gamma3,gamma4=gamma4, gamma5=gamma5, gamma6=gamma6,gamma7=gamma7, 
-                 psi=psi,chi=chi,betaA=betaA,betaI=betaI,rho=rho,phi=phi,w=w,yprop=yprop,rgnonIC=rgnonIC,b=b,rgIC=rgIC,kappa=kappa,
+                 psi=psi,chi=chi,betaA=betaA,betaI=betaI,rho=rho,phi=phi,w=w,yprop=yprop,rgnonIC=rgnonIC,b=b,
+                 omega1=omega1, omega2=omega2, omega3=omega3, omega4=omega4, 
+                 omega5=omega5, omega6=omega6, omega7=omega7, omega8=omega8, omega9=omega9,
+                 kappa=kappa,
                  homeschool=homeschool,lockdown=lockdown,distancing=distancing,employment=employment,initialinfected=initialinfected,gamma8=gamma8,gamma9=gamma9)
   #print(params)
   ## vectTime is rescaled in order to cope with the solver function		
@@ -242,8 +247,17 @@ epid <- function(eta,alpha,delta,mu,
                             
                               new.cases.entering.hospital.cumsum = cumsum(new.cases.entering.hospital),
                             new.cases.entering.IC = rho*(1-rgnonIC)*rowSums(.[as.vector(foo[6,])]),
-                        dying.in.IC = psi*(1-rgIC)*rowSums(.[as.vector(foo[7,])]),
-                        recovering.in.IC = psi*(1-(1-rgIC))*rowSums(.[as.vector(foo[7,])]),
+                        dying.in.IC = psi*omega1*rowSums(.[as.vector(foo[7,1])])+ psi*omega2*rowSums(.[as.vector(foo[7,2])])+
+                          psi*omega3*rowSums(.[as.vector(foo[7,3])]) + 
+                          psi*omega4*rowSums(.[as.vector(foo[7,4])])+ psi*omega5*rowSums(.[as.vector(foo[7,5])])+
+                          psi*omega6*rowSums(.[as.vector(foo[7,6])])+ psi*omega7*rowSums(.[as.vector(foo[7,7])])+
+                          psi*omega8*rowSums(.[as.vector(foo[7,8])])+ psi*omega9*rowSums(.[as.vector(foo[7,9])]),
+                        
+                        recovering.in.IC = psi*(1-omega1)*rowSums(.[as.vector(foo[7,1])])+ psi*(1-omega2)*rowSums(.[as.vector(foo[7,2])])+
+                          psi*(1-omega3)*rowSums(.[as.vector(foo[7,3])]) + 
+                          psi*(1-omega4)*rowSums(.[as.vector(foo[7,4])])+ psi*(1-omega5)*rowSums(.[as.vector(foo[7,5])])+
+                          psi*(1-omega6)*rowSums(.[as.vector(foo[7,6])])+ psi*(1-omega7)*rowSums(.[as.vector(foo[7,7])])+
+                          psi*(1-omega8)*rowSums(.[as.vector(foo[7,8])])+ psi*(1-omega9)*rowSums(.[as.vector(foo[7,9])]),
                         dying.in.nonIC = kappa*rho*(1-(1-rgnonIC))*rowSums(.[as.vector(foo[6,])]),
                         recovering.in.nonIC = (1-kappa)*rho*(1-(1-rgnonIC))*rowSums(.[as.vector(foo[6,])])
   )
@@ -253,45 +267,44 @@ epid <- function(eta,alpha,delta,mu,
 
  # print(out$dying.in.IC)
 
-  totalcases <- rep(NA,nrow(COVIDBYDAY) )
-  LLcases <- rep(NA,nrow(COVIDBYDAY))
-  totaldeaths <-   rep(NA,nrow(COVIDBYDAY))
+ # totalcases <- rep(NA,nrow(COVIDBYDAY) )
+#  LLcases <- rep(NA,nrow(COVIDBYDAY))
+  #totaldeaths <-   rep(NA,nrow(COVIDBYDAY))
   LLdeaths <-   rep(NA,nrow(COVIDBYDAY))
  
-   totalhospday <-   rep(NA,nrow(COVIDBYDAY))
+ #  totalhospday <-   rep(NA,nrow(COVIDBYDAY))
   LLhospday <-   rep(NA,nrow(COVIDBYDAY))
   
    casestemp <- COVIDBYDAY
   deathstemp <- DEATHSBYDAY
   
-  casestemp$CUMSUM <- as.numeric(COVIDBYDAY$CUMSUM) + (UR1)*as.numeric(COVIDBYDAY$CUMSUM )
-  casestemp$CASES <- as.numeric(COVIDBYDAY$CASES) + (UR1)*as.numeric(COVIDBYDAY$CASES )
+ # casestemp$CUMSUM <- as.numeric(COVIDBYDAY$CUMSUM) + (UR1)*as.numeric(COVIDBYDAY$CUMSUM )
+#  casestemp$CASES <- as.numeric(COVIDBYDAY$CASES) + (UR1)*as.numeric(COVIDBYDAY$CASES )
   
- totalcases <- out$new.cases.entering.hospital.cumsum
- totaldeaths <- out$D
- totalhospday <- out$new.cases.entering.hospital
- LLcases <- (casestemp$CUMSUM)*log(totalcases)  - totalcases #- lfactorial(casestemp$CUMSUM[i])
- LLdeaths <- (deathstemp$CUMSUM)*log(totaldeaths)  - totaldeaths #- lfactorial(deathstemp$CUMSUM[i])
- LLhospday <- (casestemp$CASES)*log(totalhospday)  - totalhospday #- lfactorial(casestemp$CASES[i])
+ #totalcases <- out$new.cases.entering.hospital.cumsum
+# totaldeaths <- out$D
+ #totalhospday <- out$new.cases.entering.hospital
+ #LLcases <- (casestemp$CUMSUM)*log(totalcases)  - totalcases #- lfactorial(casestemp$CUMSUM[i])
+ LLdeaths <- (deathstemp$CUMSUM)*log(out$D)  - out$D #- lfactorial(deathstemp$CUMSUM[i])
+ LLhospday <- (casestemp$CASES)*log(out$new.cases.entering.hospital)  - out$new.cases.entering.hospital #- lfactorial(casestemp$CASES[i])
  
-
-  LLtotal <- sum(LLcases,na.rm=TRUE)
-  LLtotaldeaths <- sum(LLdeaths,na.rm=TRUE)
-  LLtotalhosp <- sum(LLhospday,na.rm=TRUE)
+ # LLtotal <- sum(LLcases,na.rm=TRUE)
+ # LLtotaldeaths <- sum(LLdeaths,na.rm=TRUE)
+ # LLtotalhosp <- sum(LLhospday,na.rm=TRUE)
   #print(LLcases)
   #print(LLdeaths)
   
   toReturn <- as.vector(c( #totalcases,
-                          LLcases,LLtotal,
-                           LLdeaths, LLtotaldeaths,
-                          LLhospday, LLtotalhosp))
+                        #  LLcases, #LLtotal,
+                           LLdeaths,# LLtotaldeaths,
+                          LLhospday)) #, LLtotalhosp))
   names(toReturn) <- c( #paste0("totalcases", 1: nrow(COVIDBYDAY)),
-                        paste0("LL", 1: length(LLcases)), 
-                        "LLtotal",
+                      #  paste0("LL", 1: length(LLcases)), 
+                       # "LLtotal",
                         paste0("LLdeaths",1: length(LLdeaths)),
-                        "LLtotaldeaths",
-                        paste0("LLhospday",1: length(LLhospday)), 
-                        "LLtotalhosp")
+                       # "LLtotaldeaths",
+                        paste0("LLhospday",1: length(LLhospday))) #,  
+                       # "LLtotalhosp")
  # print(out)
   if (func.indicator=="returnout"){	
     ## the function returns important information,
@@ -305,33 +318,32 @@ epid <- function(eta,alpha,delta,mu,
 
 ###############      FUNC: Latin Hypercube Sampling (LHS)       ###############
 Sampling <- function(aaa){
-  Samples_SIR <- randomLHS(aaa, 18)
-  Samples_SIR[,1] <- 0.016 + (0.208-0.016)*Samples_SIR[,1] # gamma4
-  Samples_SIR[,2] <- 0.143 + (0.208-0.143)*Samples_SIR[,2] # gamma5
-  Samples_SIR[,3] <- 0.143 + (0.283-0.143)*Samples_SIR[,3] # gamma6
-  Samples_SIR[,4] <- 0.212 + (0.301-0.212)*Samples_SIR[,4] # gamma7
-  Samples_SIR[,5] <- 0.205 + (0.435-0.205)*Samples_SIR[,5] # gamma8
-  Samples_SIR[,6] <- 0.286 + (0.703-0.286)*Samples_SIR[,6] # gamma9
-  Samples_SIR[,7] <- 0.03 + (0.08-0.03)*Samples_SIR[,7] #0.02 + (0.15-0.02)*Samples_SIR[,7] # betaA / betaI
-  #Samples_SIR[,8] <- 0.01 + (0.1-0.01)*Samples_SIR[,8] # homeschool #0-10% of children are going to school
+  Samples_SIR <- randomLHS(aaa, 14)
+  Samples_SIR[,1] <- 0.00622 + (0.0213-0.00622)*Samples_SIR[,1] # gamma4
+  Samples_SIR[,2] <- 0.00622 + (0.070-0.00622)*Samples_SIR[,2] # gamma5
+  Samples_SIR[,3] <- 0.0253 + (0.0868-0.0253)*Samples_SIR[,3] # gamma6
+  Samples_SIR[,4] <- 0.0486 + (0.1670-0.0486)*Samples_SIR[,4] # gamma7
+  Samples_SIR[,5] <- 0.0701 + (0.240-0.0701)*Samples_SIR[,5] # gamma8
+  Samples_SIR[,6] <- 0.0987 + (0.376-0.0987)*Samples_SIR[,6] # gamma9
+  
+  Samples_SIR[,7] <- 0.05 + (0.10-0.05)*Samples_SIR[,7] #0.02 + (0.15-0.02)*Samples_SIR[,7] # betaA / betaI
+  
   Samples_SIR[,8] <- 0.17 + (0.37-0.17)*Samples_SIR[,8] # https://www.gstatic.com/covid19/mobility/2020-04-05_GB_Mobility_Report_en.pdf
   Samples_SIR[,9] <- 0.3 + (0.9-0.3)*Samples_SIR[,9] # distancing # 
-  # Samples_SIR[,11] <- 0.36 + (0.52-0.36)*Samples_SIR[,11] # employment 
   Samples_SIR[,10] <- 0.7 + (1.0 - 0.7)*Samples_SIR[,10] #  epsilon = 1 - rgnonIC
-  Samples_SIR[,11] <-  0 + (0.2-0)*Samples_SIR[,11]    #kappa
-  Samples_SIR[,12] <- 4 + (19-4)*Samples_SIR[,12] #rho 
+  Samples_SIR[,11] <-  0.03 + (0.2-0.03)*Samples_SIR[,11]    #kappa
+  Samples_SIR[,12] <-  4 + (19-4)*Samples_SIR[,12] #rho 
   Samples_SIR[,13] <-  4 + (12-4)*Samples_SIR[,13]  # psi 
-  Samples_SIR[,14] <-  3 + (10-3)*Samples_SIR[,14]  # alpha 
-  Samples_SIR[,15] <-  4 + (10-4)*Samples_SIR[,15]  # mu 
-
-  Samples_SIR[,16] <- 0 + (2-0)*Samples_SIR[,16] #initial infected
-  Samples_SIR[,17] <- 0 + (0.25-0)*Samples_SIR[,17] #UR1
-  Samples_SIR[,18] <- 0.299 + (0.699-0.299)*Samples_SIR[,18] # omega = 1-rgIC #we are sampling for rgIC
+  #Samples_SIR[,14] <-  5 #3 + (10-3)*Samples_SIR[,14]  # alpha 
+  Samples_SIR[,14] <-  2 + (10-2)*Samples_SIR[,14]  # mu 
+ # Samples_SIR[,16] <- 0 + (1-0)*Samples_SIR[,16] #initial infected
+ # Samples_SIR[,17] <- 0 + (0.25-0)*Samples_SIR[,17] #UR1
+ # Samples_SIR[,16] <-  0.2 + (0.4-0.2)*Samples_SIR[,16] # omega = 1-rgIC #we are sampling for rgIC
   paramsMat_SIR <- data.frame(eta=1/5.1, 
-                              alpha=(1/Samples_SIR[,14]), 
+                              alpha= 5, #(1/Samples_SIR[,14]), 
                               delta=0.821, 
-                              mu= (1/ Samples_SIR[,15]),
-                              gamma1=0.0205 ,gamma2=0.0205 ,gamma3=0.0205 ,
+                              mu= (1/ Samples_SIR[,14]),
+                              gamma1=0 ,gamma2=0.0408/100 ,gamma3=0.0408/100 ,
                               gamma4=Samples_SIR[,1],gamma5=Samples_SIR[,2],
                               gamma6=Samples_SIR[,3],gamma7=Samples_SIR[,4],
                               gamma8=Samples_SIR[,5],gamma9=Samples_SIR[,6],
@@ -348,11 +360,14 @@ Sampling <- function(aaa){
                               rgnonIC= Samples_SIR[,10],
                               kappa =Samples_SIR[,11],
                              
-                              rgIC=  Samples_SIR[,18],
+                            #  rgIC=  Samples_SIR[,16],
                               rho = 1/(Samples_SIR[,12]), 
                                
-                              initialinfected = Samples_SIR[,16] , #1, # 
-                              UR1 = Samples_SIR[,17]) #Samples_SIR[,15]) #, UR2 = Samples_SIR[,18],
+                              initialinfected = 1, #Samples_SIR[,16] ,
+                              UR1 = 0,
+                             omega1 = 0, omega2 = 0, omega3 = 0.221, omega4 = 0.221, omega5 = 0.221, omega6 = 0.266,
+                             omega7 = 0.423, omega8 = 0.574, omega9 = 0.683
+                  ) #Samples_SIR[,15]) #, UR2 = Samples_SIR[,18],
   # UR3 = Samples_SIR[,19], UR4 = Samples_SIR[,20])
   return(paramsMat_SIR)
 }
@@ -381,17 +396,17 @@ outFUN <- function(bbb,a0){ #feed in the sample (bbb), along with the number of 
          
          as.list(x)$psi,as.list(x)$chi,as.list(x)$betaA,as.list(x)$betaI,as.list(x)$rho,as.list(x)$phi,
          
-         as.list(x)$w,as.list(x)$yprop,as.list(x)$rgnonIC,as.list(x)$b, as.list(x)$rgIC, as.list(x)$kappa,
+         as.list(x)$w,as.list(x)$yprop,as.list(x)$rgnonIC,as.list(x)$b,
          
-         as.list(x)$homeschool,as.list(x)$lockdown,as.list(x)$distancing,as.list(x)$employment,as.list(x)$initialinfected,as.list(x)$gamma8,as.list(x)$gamma9,
+         as.list(x)$omega1, as.list(x)$omega2, as.list(x)$omega3, as.list(x)$omega4, as.list(x)$omega5, as.list(x)$omega6, as.list(x)$omega7, as.list(x)$omega8, as.list(x)$omega9,        
+         
+         as.list(x)$kappa, as.list(x)$homeschool,as.list(x)$lockdown,as.list(x)$distancing,as.list(x)$employment,as.list(x)$initialinfected,as.list(x)$gamma8,as.list(x)$gamma9,
          
          as.list(x)$UR1, 
          
-         epid.duration = LA + 2 #length of simulation
+         epid.duration = nrow(COVIDBYDAY)  - 1 #length of simulation
          
          , func.indicator="returnindicators")})
-  
-
   
   ResMat =  cbind(bbb,t(outMat))
   write.csv(ResMat,paste0("OUT_", a0,".csv"))
@@ -399,8 +414,8 @@ outFUN <- function(bbb,a0){ #feed in the sample (bbb), along with the number of 
 
 
 ##################         FITTING      ######################## 
-UR1max <- 0.25
-Nsamples<- 1000 #how many samples? 
+UR1max <- 0 #set to zero to hit the line as best we can 
+Nsamples<- 100#how many samples? 
 p1<-Sampling(Nsamples)  
 #Run the simulator outFUN for the Latin-Hypercube samples generated above
 ptm <- proc.time() #time run 
@@ -411,28 +426,40 @@ timeX = (proc.time() - ptm) / Nsamples #time per run
 seconds = 3600 #1 hour
 totalin1hour = seconds/timeX[3]
 totalin1hour
-FULLDATA_orig <-fread("OUT_1.csv") 
-FULLDATA<-fread("OUT_1.csv")
+FULLDATA_orig <-fread("FULLDATA_SW.csv") 
+FULLDATA<-fread("FULLDATA_SW.csv")
 #FULLDATA<-fread("FULLDATA3.csv") 
 #farbackcases = 10 #how far back to fit to?
 ##Log-likelihood  function
 #USE nrow(COVIDBYDAY) - 2 as final 
-#FULLDATA$LLtotal <- rowSums(FULLDATA[,
- #                               eval(parse(text=paste0("LL",(nrow(COVIDBYDAY)-farbackcases),sep=""))):eval(parse(text=paste0("LL",(nrow(COVIDBYDAY)),sep="")))
-  #                             ],na.rm = TRUE)
-#FULLDATA <- FULLDATA[order(-FULLDATA$LLtotal),] #order them
 
-#plotfits(rbind(FULLDATA[1:5,],FULLDATA[1:5,]),70)
+#Data from around 5 days ago can be considered complete, so set last 5 to = NA
+completeat <- length(COVIDBYDAY$CASES)-4
+lastat <- length(COVIDBYDAY$CASES)
+for (i in completeat:lastat){
+#eval(parse(text=paste0("FULLDATA$","LL",i,"<- NA",sep=""))) 
+  eval(parse(text=paste0("FULLDATA$","LLdeaths",i,"<- NA",sep=""))) 
+  eval(parse(text=paste0("FULLDATA$","LLhospday",i,"<- NA",sep=""))) 
+}
 
-#ROWS<-nrow(FULLDATA)
-#FULLDATA$LLALL <- FULLDATA$LLtotal + FULLDATA$LLtotaldeaths
-#OR METHOD WITH SQRT OF N TO SCALE LL FOR EACH METRIC
+#FULLDATA$LLtotalcases <- rowSums(FULLDATA[,
+#                                eval(parse(text=paste0("LL",1,sep=""))):eval(parse(text=paste0("LL",(nrow(COVIDBYDAY)),sep="")))
+#                               ],na.rm = TRUE)
+FULLDATA$LLtotaldeaths <- rowSums(FULLDATA[,
+                                     eval(parse(text=paste0("LLdeaths",1,sep=""))):eval(parse(text=paste0("LLdeaths",(nrow(COVIDBYDAY)),sep="")))
+                                     ],na.rm = TRUE)
+FULLDATA$LLtotalhosp <- rowSums(FULLDATA[,
+                                     eval(parse(text=paste0("LLhospday",1,sep=""))):eval(parse(text=paste0("LLhospday",(nrow(COVIDBYDAY)),sep="")))
+                                     ],na.rm = TRUE)
+
 casemean <- mean(COVIDBYDAY$CASES,na.rm=TRUE)
 deathsmean <- mean(DEATHSBYDAY$CUMSUM,na.rm=TRUE)
 deathsmean[is.nan(deathsmean)] <- 1
 FULLDATA$LLALL <- (FULLDATA$LLtotalhosp/sqrt(casemean)) + 
   (FULLDATA$LLtotaldeaths/sqrt(deathsmean)) 
+
 FULLDATA <- FULLDATA[order(-FULLDATA$LLALL),] #order them
+
 FULLDATA$LL <- FULLDATA$LLALL - max(FULLDATA$LLALL) -1  #rescale log likelihood
 #Calculate the importance weights
 FULLDATA$IW <- exp(FULLDATA$LL)/sum(exp(FULLDATA$LL))
@@ -464,7 +491,12 @@ plotfits <- function(SIR.unique, lengthsim){
                 distancing=SIR.unique$distancing[i],employment=SIR.unique$employment[i],initialinfected = SIR.unique$initialinfected[i], gamma8 = SIR.unique$gamma8[i], gamma9 = SIR.unique$gamma9[i], 
                 UR1 = SIR.unique$UR1[i],  # UR2 = SIR.unique$UR2[i],   UR3 = SIR.unique$UR3  ,UR4 = SIR.unique$UR4[i], 
                 w=SIR.unique$w[i],yprop=SIR.unique$yprop[i],rgnonIC=SIR.unique$rgnonIC[i],
-                b=SIR.unique$b[i],rgIC=SIR.unique$rgIC[i],kappa=SIR.unique$kappa[i],
+                b=SIR.unique$b[i],omega1=SIR.unique$omega1[i],
+                omega2=SIR.unique$omega2[i],omega3=SIR.unique$omega3[i],omega4=SIR.unique$omega4[i],
+                omega5=SIR.unique$omega5[i],omega6=SIR.unique$omega6[i],
+                omega7=SIR.unique$omega7[i],omega8=SIR.unique$omega8[i],
+                omega9=SIR.unique$omega9[i],
+                kappa=SIR.unique$kappa[i],
                 rho=SIR.unique$rho[i],phi=SIR.unique$phi[i],
                 epid.duration = lengthsim, #length of simulation
                 func.indicator="returnout"))}
@@ -755,7 +787,9 @@ plotfits <- function(SIR.unique, lengthsim){
     annotate("text", x = COVIDBYDAY[time2,]$Date -1, y = max(COVIDBYDAY$MAX,datanew.cases.entering.hospital.cumsum$upper,na.rm=TRUE)/2, label = "School Closures",angle=90,colour=wes_palette("Zissou1",n=5)[3],size=3)+
     annotate("text", x = COVIDBYDAY[time3,]$Date -1, y = max(COVIDBYDAY$MAX,datanew.cases.entering.hospital.cumsum$upper,na.rm=TRUE)/2, label = "Lockdown",angle=90,colour=wes_palette("Zissou1",n=5)[5],size=3)+
     geom_errorbar(data=COVIDBYDAY,aes(x=Date,ymin=CUMSUM, ymax=CUMSUM*(1+UR1max)), width=0.1,colour=cols[5],alpha=0.5)+
-    geom_point(data=COVIDBYDAY,aes(x=Date,y=CUMSUM,colour="Observed"), width=0.8,size=2)+#,colour="black")+
+    geom_point(data=COVIDBYDAY[-(completeat:lastat),],aes(x=Date,y=CUMSUM,colour="Observed"), width=0.8,size=2)+#,colour="black")+
+    geom_point(data=COVIDBYDAY[completeat:lastat,],aes(x=Date,y=CUMSUM,colour="Observed"), width=0.8,size=2,alpha=0.4)+#,colour="black")+
+
    # geom_point(data=COVIDBYDAY[-fittingtimecases,],aes(x=Date,y=CASES), width=0.8,size=3,colour="grey")+
     geom_ribbon(aes(ymin=lower, ymax=upper), linetype=0, alpha=0.25,fill = "#666666",size=0.5)+
     geom_ribbon(aes(ymin=lower2, ymax=upper2), linetype=0, alpha=0.5,size=0.5,fill="#666666")+
@@ -834,7 +868,8 @@ plotfits <- function(SIR.unique, lengthsim){
     # geom_errorbar(data=beds,aes(x=Date,ymin=allbeds, ymax=allbedsMAX), width=0.8,size=1,colour="black",alpha=0.25)+
     # geom_ribbon(aes(ymin=lower, ymax=upper), linetype=0, alpha=0.1,fill = "#666666",size=0.5)+
     geom_bar(aes(y=value,fill=variable),size=1.5,stat = "identity") +
-    geom_point(data=COVIDBYDAY,aes(y=CASES), width=0.8,size=2,colour=cols[5])+
+    geom_point(data=COVIDBYDAY[-(completeat:lastat),],aes(y=CASES), width=0.8,size=2,colour=cols[5])+
+    geom_point(data=COVIDBYDAY[(completeat:lastat),],aes(y=CASES), width=0.8,size=2,colour=cols[5],alpha=0.4)+
     ylab(label="")+
     ggtitle(label="Hospitalised in non-IC last 24h")+
     plotdet+ 
@@ -847,7 +882,8 @@ plotfits <- function(SIR.unique, lengthsim){
              ymin=0, ymax=Inf,
              fill = "cornflowerblue", alpha = 0.1)+
    # geom_errorbar(data=deaths,aes(x=Date,ymin=CUMSUM, ymax=CUMSUM*(1+UR4max)), width=0.8,size=1,colour=cols[5],alpha=0.25)+
-    geom_point(data=DEATHSBYDAY,aes(y=CUMSUM), width=0.8,size=2,colour=cols[5])+
+    geom_point(data=DEATHSBYDAY[-(completeat:lastat),],aes(y=CUMSUM), width=0.8,size=2,colour=cols[5])+
+    geom_point(data=DEATHSBYDAY[(completeat:lastat),],aes(y=CUMSUM), width=0.8,size=2,colour=cols[5],alpha=0.4)+
     # geom_errorbar(data=beds,aes(x=Date,ymin=ICMIN, ymax=ICMAX), width=0.8,size=1,colour="black",alpha=0.25)+theme(axis.title.x = element_blank(), axis.text.x = element_blank())+
     # geom_errorbar(data=beds,aes(x=Date,ymin=ICMIN, ymax=ICMAX), width=0.8,size=1,colour="grey",alpha=0.25)+theme(axis.title.x = element_blank(), axis.text.x = element_blank())+
     geom_ribbon(aes(ymin=lower, ymax=upper), linetype=0, alpha=0.25,fill = "#666666",size=0.5)+
@@ -972,21 +1008,21 @@ plotfits <- function(SIR.unique, lengthsim){
  # print(datatabsummary)
 }
 #the best few fits
-plotfits(FULLDATA,200)
+plotfits(FULLDATA,150)
 
 #options(scipen=5)
 #dev.off()
-plotfits(FULLDATA[1:10,],80)
+plotfits(FULLDATA,90)
 
 
 par(mfrow=c(1,1))
 mycol <- rgb(255, 0, 0, max = 255, alpha = 100, names = "blue50")
-boxplot(FULLDATA_orig$eta,FULLDATA_orig$alpha,FULLDATA_orig$delta,FULLDATA_orig$mu,FULLDATA_orig$omega,FULLDATA_orig$psi, FULLDATA_orig$chi,
-        FULLDATA_orig$betaA, FULLDATA_orig$betaI,FULLDATA_orig$homeschool,FULLDATA_orig$lockdown,FULLDATA_orig$distancing,FULLDATA_orig$employment,FULLDATA_orig$rgnonIC,FULLDATA_orig$rgIC,FULLDATA_orig$rho,FULLDATA_orig$phi,FULLDATA_orig$kappa,
-        col=grey(0.6),names=c(expression(eta),expression(alpha),expression(delta),expression(mu),expression(omega),expression(psi),expression(chi),
-                              expression(betaA),expression(betaI),expression(homeschool),expression(lockdown),expression(distancing),expression(employment),expression(rgnonIC),expression(rgIC),expression(rho),expression(phi),expression(kappa) ),
+boxplot(FULLDATA_orig$eta,FULLDATA_orig$alpha,FULLDATA_orig$delta,FULLDATA_orig$mu,FULLDATA_orig$omega9,FULLDATA_orig$psi, FULLDATA_orig$chi,
+        FULLDATA_orig$betaA, FULLDATA_orig$betaI,FULLDATA_orig$homeschool,FULLDATA_orig$lockdown,FULLDATA_orig$distancing,FULLDATA_orig$employment,FULLDATA_orig$rgnonIC,FULLDATA_orig$omega9,FULLDATA_orig$rho,FULLDATA_orig$phi,FULLDATA_orig$kappa,
+        col=grey(0.6),names=c(expression(eta),expression(alpha),expression(delta),expression(mu),expression(omega9),expression(psi),expression(chi),
+                              expression(betaA),expression(betaI),expression(homeschool),expression(lockdown),expression(distancing),expression(employment),expression(rgnonIC),expression(omega9),expression(rho),expression(phi),expression(kappa) ),
         show.names=TRUE,main="",medcol=grey(0),whiskcol=grey(0.6),staplecol=grey(0.6),boxcol=grey(0.6),outcol=grey(0.6),outbg=grey(0.6),las=2)
-boxplot(FULLDATA$eta,FULLDATA$alpha,FULLDATA$delta,FULLDATA$mu,FULLDATA$omega,FULLDATA$psi, FULLDATA$chi,
+boxplot(FULLDATA$eta,FULLDATA$alpha,FULLDATA$delta,FULLDATA$mu,FULLDATA$omega9,FULLDATA$psi, FULLDATA$chi,
         FULLDATA$betaA, FULLDATA$betaI,FULLDATA$homeschool,FULLDATA$lockdown,FULLDATA$distancing,FULLDATA$employment,FULLDATA$rgnonIC,FULLDATA$rgIC,FULLDATA$rho,FULLDATA$phi,FULLDATA$kappa,
         col=mycol,show.names=TRUE,add=TRUE,medcol="red",whiskcol="red",staplecol="red",boxcol="red",outcol="red",outbg="red",boxwex=0.5,las=2)
 
@@ -1008,6 +1044,7 @@ round(c(quantile(FULLDATA$gamma9, c(0.025, 0.975)) ,median=median(FULLDATA$gamma
 round(1/c(quantile(FULLDATA$psi, c(0.025, 0.975)) ,median=median(FULLDATA$psi)),1) #
 
 100-round(c(quantile(FULLDATA$rgnonIC, c(0.025, 0.975)) ,median=median(FULLDATA$rgnonIC)),3)*100 #
+100-round(c(quantile(FULLDATA$omega9, c(0.025, 0.975)) ,median=median(FULLDATA$omega9)),3)*100 #omega9
 round(c(quantile(FULLDATA$kappa, c(0.025, 0.975)) ,median=median(FULLDATA$kappa)),3)*100 #
 
 round(c(quantile(FULLDATA$homeschool, c(0.025, 0.975)) ,median=median(FULLDATA$homeschool)),3)*100 #

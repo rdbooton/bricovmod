@@ -3,7 +3,7 @@ N=100000
 p1<-Sampling(N) 
 write.csv(p1,"p1.csv")
 p1<-fread("p1.csv")
-K=1000 #how many slices
+K=100 #how many slices
 
 ###### 
 # OUT_1 to OUT_K
@@ -12,7 +12,7 @@ for (i in 1:K){
   ) ) ) , p1[(1+((i-1)*(nrow(p1)/K))):(i*(nrow(p1)/K)),] )
 }
 
-for (i in 1:K){ #
+for (i in 23:K){ #
   DATA = eval(parse(text=paste0("DATA_", i)))
   outFUN(DATA,i)
   print(i)
