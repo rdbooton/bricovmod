@@ -2,7 +2,7 @@
 Bristol COVID-19 Modelling
 
 Public data needed from https://coronavirus.data.gov.uk/#regions
-Download both coronavirus-deaths_latest.csv and coronavirus-cases_latest.csv (we assume last 5 days are not complete for reporting)
+Download both coronavirus-deaths_latest.csv and coronavirus-cases_latest.csv (last 5 days are not complete for reporting)
 
 Update data from ONS for regional deaths 
 https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/deaths/datasets/deathsinvolvingcovid19englandandwalesmarch2020
