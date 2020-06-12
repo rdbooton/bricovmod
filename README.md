@@ -6,9 +6,9 @@ Download both coronavirus-deaths_latest.csv and coronavirus-cases_latest.csv (la
 
 Update data from ONS for regional deaths 
 https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/deaths/datasets/deathsinvolvingcovid19englandandwalesmarch2020
-But included in this repos as "coronavirus-deaths-regional.csv" up until 17th April 2020 - this is the regional death count from weekly occurrences xlsx which can be downloaded on ONS 
+But included in this repos as "coronavirus-deaths-regional.csv" up until 17th April 2020 - this is the regional death count from weekly occurrences xlsx which can be downloaded on ONS - this will need updating
 
-bricovmod.R file:
+bricovmodV2.R file:
 
 - Can change "SPECREGION" according to specific region in UK 
 
@@ -25,6 +25,6 @@ bricovmod.R file:
 
 
 
-plotfits.R file:
+plotfitsV2.R file:
 
 - Can specify which plots interested in - comment out / in to get tables, plots etc
