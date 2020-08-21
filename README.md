@@ -8,7 +8,7 @@ Update data from ONS for regional deaths
 https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/deaths/datasets/deathsinvolvingcovid19englandandwalesmarch2020
 But included in this repos as "coronavirus-deaths-regional.csv" up until 17th April 2020 - this is the regional death count from weekly occurrences xlsx which can be downloaded on ONS - this will need updating
 
-bricovmodV2.R file:
+bricovmodV3.R file:
 
 - Can change "SPECREGION" according to specific region in UK 
 
